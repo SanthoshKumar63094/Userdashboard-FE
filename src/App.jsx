@@ -11,9 +11,18 @@ import SalesByDistrict from "./components/SalesReport";
 import OrdersStatusStats from "./components/OrdersStatusStats";
 import SalesByProduct from "./components/SalesByProduct";
 import "./index.css";
- 
+
+// Simple fallback component for empty data
+function NoData({ message }) {
+  return (
+    <div className="p-6 text-center text-gray-600 bg-white rounded-lg shadow">
+      {message || "No data available"}
+    </div>
+  );
+}
+
 function App() {
-  const [data, setData] = useState(null);
+  const [data, setData] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [active, setActive] = useState("dashboard");
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
@@ -22,10 +31,9 @@ function App() {
   const [orders, setOrders] = useState([]);
   const [districtSales, setDistrictSales] = useState([]);
   const [profits, setProfits] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    const API ="http://localhost:5000";
     async function loadAll() {
       try {
         const [s, p, c, o, ds, pf] = await Promise.all([
@@ -44,15 +52,10 @@ function App() {
         setProfits(pf);
       } catch (e) {
         console.error("Failed to load data", e);
-      } finally {
-        setLoading(false);
       }
     }
     loadAll();
   }, []);
-
-  if (loading) return <p className="p-6">Loading...</p>;
-  if (!data) return <p className="p-6 text-red-600">No data available.</p>;
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -76,117 +79,193 @@ function App() {
         <Header onMenuClick={() => setSidebarOpen((v) => !v)} />
 
         <main className="p-6">
-          <h2 className="text-2xl font-bold mb-6 capitalize">{active.replace("-"," ")}</h2>
+          <h2 className="text-2xl font-bold mb-6 capitalize">
+            {active.replace("-", " ")}
+          </h2>
 
-          {/* Only render dashboard widgets when dashboard is active */}
+          {/* Dashboard Section */}
           {active === "dashboard" && (
             <>
               {/* Sales Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card title="Sales (Today)" value={`₹${data.sales.today}`} />
-                <Card title="Sales (Yesterday)" value={`₹${data.sales.yesterday}`} />
-                <Card title="Sales (Monthly)" value={`₹${data.sales.monthly}`} />
-                <Card title="Sales (Yearly)" value={`₹${data.sales.yearly}`} />
-              </div>
+              {data && data.sales ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <Card title="Sales (Today)" value={`₹${data.sales.today}`} />
+                  <Card title="Sales (Yesterday)" value={`₹${data.sales.yesterday}`} />
+                  <Card title="Sales (Monthly)" value={`₹${data.sales.monthly}`} />
+                  <Card title="Sales (Yearly)" value={`₹${data.sales.yearly}`} />
+                </div>
+              ) : (
+                <NoData message="No sales data available" />
+              )}
 
               {/* Revenue Chart */}
               <div className="mt-6">
-                <RevenueChart data={data} />
+                {data ? (
+                  <RevenueChart data={data} />
+                ) : (
+                  <NoData message="No revenue data available" />
+                )}
               </div>
 
               {/* Orders, Customers, Alerts */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-6">
-                <Card title="Total Orders" value={data.orders} />
-                <Card title="Active Customers" value={data.customers} />
-                <Card title="Low Stock Alerts" value={data.lowStockCount} />
-              </div>
-            </>
-          )}
-
-          {/* Products page */}
-          {active === "products" && (
-            <ProductsTable
-              products={products}
-              onEdit={(p) => {
-                const name = window.prompt("Product name", p.name) ?? p.name;
-                const category = window.prompt("Category", p.category) ?? p.category;
-                const stockStr = window.prompt("Stock", String(p.stock));
-                const priceStr = window.prompt("Price (₹)", String(p.price));
-                const stock = stockStr === null ? p.stock : Math.max(0, Number(stockStr));
-                const price = priceStr === null ? p.price : Math.max(0, Number(priceStr));
-                setProducts((list) => list.map((it) => (it.id === p.id ? { ...it, name, category, stock, price } : it)));
-              }}
-              onDelete={(p) => {
-                if (window.confirm(`Delete ${p.name}?`)) {
-                  setProducts((list) => list.filter((it) => it.id !== p.id));
-                }
-              }}
-            />
-          )}
-
-          {/* Reports page */}
-          {active === "reports" && (
-            <>
-              {/* Sales Cards (same as dashboard) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card title="Sales (Today)" value={`₹${data.sales.today}`} />
-                <Card title="Sales (Yesterday)" value={`₹${data.sales.yesterday}`} />
-                <Card title="Sales (Monthly)" value={`₹${data.sales.monthly}`} />
-                <Card title="Sales (Yearly)" value={`₹${data.sales.yearly}`} />
-              </div>
-
-              {/* Revenue Chart (same as dashboard) */}
-              <div className="mt-6">
-                <RevenueChart data={data} />
-              </div>
-
-              {/* Summary Cards (same as dashboard) */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-6">
-                <Card title="Total Orders" value={data.orders} />
-                <Card title="Active Customers" value={data.customers} />
-                <Card title="Low Stock Alerts" value={data.lowStockCount} />
-              </div>
-
-              <div className="mt-6 space-y-6">
-                <OrdersStatusStats orders={orders} />
-                <SalesByDistrict data={districtSales} profits={profits} />
-                <div className="mt-10 pt-6">
-                  <SalesByProduct orders={orders} />
+              {data ? (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-6">
+                  <Card title="Total Orders" value={data.orders} />
+                  <Card title="Active Customers" value={data.customers} />
+                  <Card title="Low Stock Alerts" value={data.lowStockCount} />
                 </div>
-              </div>
+              ) : (
+                <NoData message="No order/customer data available" />
+              )}
             </>
           )}
-          {active === "customers" && (
-            <>
-              <CustomersStats stats={{
-                total: customers.length,
-                new: 0,
-                active: customers.filter(c => c.status === 'active').length,
-                blocked: customers.filter(c => c.status === 'blocked').length,
-              }} />
-              <CustomersTable
-                customers={customers}
-                onSetActive={(c) => setCustomers((list) => list.map((it) => it.id === c.id ? { ...it, status: 'active' } : it))}
-                onSetBlocked={(c) => setCustomers((list) => list.map((it) => it.id === c.id ? { ...it, status: 'blocked' } : it))}
+
+          {/* Products Section */}
+          {active === "products" && (
+            products && products.length > 0 ? (
+              <ProductsTable
+                products={products}
+                onEdit={(p) => {
+                  const name = window.prompt("Product name", p.name) ?? p.name;
+                  const category = window.prompt("Category", p.category) ?? p.category;
+                  const stockStr = window.prompt("Stock", String(p.stock));
+                  const priceStr = window.prompt("Price (₹)", String(p.price));
+                  const stock = stockStr === null ? p.stock : Math.max(0, Number(stockStr));
+                  const price = priceStr === null ? p.price : Math.max(0, Number(priceStr));
+                  setProducts((list) =>
+                    list.map((it) =>
+                      it.id === p.id ? { ...it, name, category, stock, price } : it
+                    )
+                  );
+                }}
+                onDelete={(p) => {
+                  if (window.confirm(`Delete ${p.name}?`)) {
+                    setProducts((list) => list.filter((it) => it.id !== p.id));
+                  }
+                }}
               />
-            </>
+            ) : (
+              <NoData message="No products available" />
+            )
           )}
 
-          {/* Orders page */}
+          {/* Reports Section */}
+          {active === "reports" && (
+            data && data.sales ? (
+              <>
+                {/* Sales Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <Card title="Sales (Today)" value={`₹${data.sales.today}`} />
+                  <Card title="Sales (Yesterday)" value={`₹${data.sales.yesterday}`} />
+                  <Card title="Sales (Monthly)" value={`₹${data.sales.monthly}`} />
+                  <Card title="Sales (Yearly)" value={`₹${data.sales.yearly}`} />
+                </div>
+
+                {/* Revenue Chart */}
+                <div className="mt-6">
+                  <RevenueChart data={data} />
+                </div>
+
+                {/* Summary Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-6">
+                  <Card title="Total Orders" value={data.orders} />
+                  <Card title="Active Customers" value={data.customers} />
+                  <Card title="Low Stock Alerts" value={data.lowStockCount} />
+                </div>
+
+                {/* Detailed Reports */}
+                <div className="mt-6 space-y-6">
+                  {orders.length > 0 ? (
+                    <OrdersStatusStats orders={orders} />
+                  ) : (
+                    <NoData message="No order status data" />
+                  )}
+
+                  {districtSales.length > 0 ? (
+                    <SalesByDistrict data={districtSales} profits={profits} />
+                  ) : (
+                    <NoData message="No district sales data" />
+                  )}
+
+                  {orders.length > 0 ? (
+                    <div className="mt-10 pt-6">
+                      <SalesByProduct orders={orders} />
+                    </div>
+                  ) : (
+                    <NoData message="No sales by product data" />
+                  )}
+                </div>
+              </>
+            ) : (
+              <NoData message="No report data available" />
+            )
+          )}
+
+          {/* Customers Section */}
+          {active === "customers" && (
+            customers && customers.length > 0 ? (
+              <>
+                <CustomersStats
+                  stats={{
+                    total: customers.length,
+                    new: 0,
+                    active: customers.filter((c) => c.status === "active").length,
+                    blocked: customers.filter((c) => c.status === "blocked").length,
+                  }}
+                />
+                <CustomersTable
+                  customers={customers}
+                  onSetActive={(c) =>
+                    setCustomers((list) =>
+                      list.map((it) =>
+                        it.id === c.id ? { ...it, status: "active" } : it
+                      )
+                    )
+                  }
+                  onSetBlocked={(c) =>
+                    setCustomers((list) =>
+                      list.map((it) =>
+                        it.id === c.id ? { ...it, status: "blocked" } : it
+                      )
+                    )
+                  }
+                />
+              </>
+            ) : (
+              <NoData message="No customer data available" />
+            )
+          )}
+
+          {/* Orders Section */}
           {active === "orders" && (
-            <OrdersTable
-              orders={orders}
-              onCancel={(o) => {
-                if (window.confirm(`Cancel order for ${o.name}?`)) {
-                  setOrders((list) => list.map((it) => (it.id === o.id ? { ...it, status: "Order Cancelled by User" } : it)));
-                }
-              }}
-            />
+            orders && orders.length > 0 ? (
+              <OrdersTable
+                orders={orders}
+                onCancel={(o) => {
+                  if (window.confirm(`Cancel order for ${o.name}?`)) {
+                    setOrders((list) =>
+                      list.map((it) =>
+                        it.id === o.id
+                          ? { ...it, status: "Order Cancelled by User" }
+                          : it
+                      )
+                    );
+                  }
+                }}
+              />
+            ) : (
+              <NoData message="No orders available" />
+            )
           )}
 
-          {active !== "dashboard" && active !== "products" && active !== "orders" && active !== "customers" && active !== "reports" && (
-            <div className="text-gray-600">Content for {active} coming soon...</div>
-          )}
+          {/* Fallback for any new pages */}
+          {active !== "dashboard" &&
+            active !== "products" &&
+            active !== "orders" &&
+            active !== "customers" &&
+            active !== "reports" && (
+              <NoData message={`Content for ${active} coming soon...`} />
+            )}
         </main>
       </div>
 
@@ -195,7 +274,9 @@ function App() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
             <h3 className="text-lg font-semibold mb-4">Confirm Logout</h3>
-            <p className="text-gray-600 mb-6">Are you sure you want to logout?</p>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to logout?
+            </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setLogoutDialogOpen(false)}
