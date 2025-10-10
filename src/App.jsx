@@ -179,6 +179,20 @@ function App() {
                         setCustomers((list) => list.filter((it) => it.id !== c.id));
                       }
                     }}
+                    onSetActive={(c) => {
+                      setCustomers((list) =>
+                        list.map((it) =>
+                          it.id === c.id ? { ...it, status: 'active' } : it
+                        )
+                      );
+                    }}
+                    onSetBlocked={(c) => {
+                      setCustomers((list) =>
+                        list.map((it) =>
+                          it.id === c.id ? { ...it, status: 'blocked' } : it
+                        )
+                      );
+                    }}
                   />
                 ) : (
                   <NoData message="No customers available" />
@@ -203,6 +217,15 @@ function App() {
                     onDelete={(o) => {
                       if (window.confirm(`Delete order #${o.id}?`)) {
                         setOrders((list) => list.filter((it) => it.id !== o.id));
+                      }
+                    }}
+                    onCancel={(o) => {
+                      if (window.confirm(`Cancel order #${o.id}?`)) {
+                        setOrders((list) =>
+                          list.map((it) =>
+                            it.id === o.id ? { ...it, status: 'Order Cancelled by User' } : it
+                          )
+                        );
                       }
                     }}
                   />
