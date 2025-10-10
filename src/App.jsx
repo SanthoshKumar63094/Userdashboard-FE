@@ -41,27 +41,24 @@ function App() {
   const [customers, setCustomers] = useState([]);
   const [orders, setOrders] = useState([]);
   const [districtSales, setDistrictSales] = useState([]);
-  const [profits, setProfits] = useState([]);
 
   useEffect(() => {
     const API = "https://userdashboard-be.onrender.com"
 ;
     async function loadAll() {
       try {
-        const [s, p, c, o, ds, pf] = await Promise.all([
+        const [s, p, c, o, ds] = await Promise.all([
           fetch(`${API}/api/summary`).then(r => r.json()),
           fetch(`${API}/api/products`).then(r => r.json()),
           fetch(`${API}/api/customers`).then(r => r.json()),
           fetch(`${API}/api/orders`).then(r => r.json()),
           fetch(`${API}/api/district-sales`).then(r => r.json()),
-          fetch(`${API}/api/profits`).then(r => r.json()),
         ]);
         setData(s);
         setProducts(p);
         setCustomers(c);
         setOrders(o);
         setDistrictSales(ds);
-        setProfits(pf);
       } catch (e) {
         console.error("Failed to load data", e);
       } finally {
@@ -217,6 +214,46 @@ function App() {
               {/* Reports Section */}
               {active === "reports" && (
                 <div className="space-y-6">
+                  {/* Duplicate Dashboard Sales Cards */}
+                  {data && data.sales ? (
+                    <div>
+                      <h3 className="text-xl font-semibold mb-4">Sales Overview</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <Card title="Sales (Today)" value={`₹${data.sales.today}`} />
+                        <Card title="Sales (Yesterday)" value={`₹${data.sales.yesterday}`} />
+                        <Card title="Sales (Monthly)" value={`₹${data.sales.monthly}`} />
+                        <Card title="Sales (Yearly)" value={`₹${data.sales.yearly}`} />
+                      </div>
+                    </div>
+                  ) : (
+                    <NoData message="No sales data available" />
+                  )}
+
+                  {/* Duplicate Dashboard Revenue Chart */}
+                  {data ? (
+                    <div>
+                      <h3 className="text-xl font-semibold mb-4">Revenue Chart</h3>
+                      <RevenueChart data={data} />
+                    </div>
+                  ) : (
+                    <NoData message="No revenue data available" />
+                  )}
+
+                  {/* Duplicate Dashboard Stats Cards */}
+                  {data ? (
+                    <div>
+                      <h3 className="text-xl font-semibold mb-4">Key Metrics</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <Card title="Total Orders" value={data.orders} />
+                        <Card title="Active Customers" value={data.customers} />
+                        <Card title="Low Stock Alerts" value={data.lowStockCount} />
+                      </div>
+                    </div>
+                  ) : (
+                    <NoData message="No metrics data available" />
+                  )}
+
+                  {/* Reports-Specific Components */}
                   {districtSales && districtSales.length > 0 ? (
                     <div>
                       <h3 className="text-xl font-semibold mb-4">Sales by District</h3>
@@ -224,23 +261,6 @@ function App() {
                     </div>
                   ) : (
                     <NoData message="No district sales data available" />
-                  )}
-
-                  {profits && profits.length > 0 ? (
-                    <div>
-                      <h3 className="text-xl font-semibold mb-4">Profits Overview</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {profits.map((profit, index) => (
-                          <Card
-                            key={index}
-                            title={`Profit ${index + 1}`}
-                            value={`₹${profit.amount || 0}`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <NoData message="No profits data available" />
                   )}
 
                   {orders && orders.length > 0 ? (
