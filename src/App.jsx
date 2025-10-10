@@ -163,6 +163,106 @@ function App() {
                 )
               )}
 
+              {/* Customers Section */}
+              {active === "customers" && (
+                customers && customers.length > 0 ? (
+                  <CustomersTable
+                    customers={customers}
+                    onEdit={(c) => {
+                      const name = window.prompt("Customer name", c.name) ?? c.name;
+                      const email = window.prompt("Email", c.email ?? "") ?? (c.email ?? "");
+                      setCustomers((list) =>
+                        list.map((it) =>
+                          it.id === c.id ? { ...it, name, email } : it
+                        )
+                      );
+                    }}
+                    onDelete={(c) => {
+                      if (window.confirm(`Delete ${c.name}?`)) {
+                        setCustomers((list) => list.filter((it) => it.id !== c.id));
+                      }
+                    }}
+                  />
+                ) : (
+                  <NoData message="No customers available" />
+                )
+              )}
+
+              {/* Orders Section */}
+              {active === "orders" && (
+                orders && orders.length > 0 ? (
+                  <OrdersTable
+                    orders={orders}
+                    onEdit={(o) => {
+                      const status = window.prompt("Order status", o.status ?? "pending") ?? (o.status ?? "pending");
+                      const amountStr = window.prompt("Order amount (₹)", String(o.amount ?? 0));
+                      const amount = amountStr === null ? (o.amount ?? 0) : Math.max(0, Number(amountStr));
+                      setOrders((list) =>
+                        list.map((it) =>
+                          it.id === o.id ? { ...it, status, amount } : it
+                        )
+                      );
+                    }}
+                    onDelete={(o) => {
+                      if (window.confirm(`Delete order #${o.id}?`)) {
+                        setOrders((list) => list.filter((it) => it.id !== o.id));
+                      }
+                    }}
+                  />
+                ) : (
+                  <NoData message="No orders available" />
+                )
+              )}
+
+              {/* Reports Section */}
+              {active === "reports" && (
+                <div className="space-y-6">
+                  {districtSales && districtSales.length > 0 ? (
+                    <div>
+                      <h3 className="text-xl font-semibold mb-4">Sales by District</h3>
+                      <SalesByDistrict data={districtSales} />
+                    </div>
+                  ) : (
+                    <NoData message="No district sales data available" />
+                  )}
+
+                  {profits && profits.length > 0 ? (
+                    <div>
+                      <h3 className="text-xl font-semibold mb-4">Profits Overview</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {profits.map((profit, index) => (
+                          <Card
+                            key={index}
+                            title={`Profit ${index + 1}`}
+                            value={`₹${profit.amount || 0}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <NoData message="No profits data available" />
+                  )}
+
+                  {orders && orders.length > 0 ? (
+                    <div>
+                      <h3 className="text-xl font-semibold mb-4">Order Status Stats</h3>
+                      <OrdersStatusStats orders={orders} />
+                    </div>
+                  ) : (
+                    <NoData message="No orders for status stats" />
+                  )}
+
+                  {orders && orders.length > 0 ? (
+                    <div>
+                      <h3 className="text-xl font-semibold mb-4">Sales by Product</h3>
+                      <SalesByProduct orders={orders} />
+                    </div>
+                  ) : (
+                    <NoData message="No orders for product sales" />
+                  )}
+                </div>
+              )}
+
               {/* Other sections remain same... */}
             </>
           )}
