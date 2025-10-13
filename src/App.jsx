@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Routes, Route, useNavigate } from "react-router-dom";
+import axios from "axios";
 import Header from "./components/Header";
 import Card from "./components/Card";
 import Sidebar from "./components/Sidebar";
@@ -10,6 +12,8 @@ import CustomersTable from "./components/CustomersTable";
 import SalesByDistrict from "./components/SalesReport";
 import OrdersStatusStats from "./components/OrdersStatusStats";
 import SalesByProduct from "./components/SalesByProduct";
+import Login from "./components/Login";
+import ProtectedRoute from "./components/ProtectedRoute";
 import "./index.css";
 
 // 🔹 Loader Component
@@ -31,42 +35,49 @@ function NoData({ message }) {
   );
 }
 
-function App() {
-  const [loading, setLoading] = useState(true); // 🆕
+// Dashboard Component
+function Dashboard() {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [active, setActive] = useState("dashboard");
-  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+
   const [products, setProducts] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [orders, setOrders] = useState([]);
   const [districtSales, setDistrictSales] = useState([]);
 
   useEffect(() => {
-    const API = "https://userdashboard-be.onrender.com"
-;
+    const API = "http://localhost:5000";
+    const token = localStorage.getItem("token");
+
     async function loadAll() {
       try {
         const [s, p, c, o, ds] = await Promise.all([
-          fetch(`${API}/api/summary`).then(r => r.json()),
-          fetch(`${API}/api/products`).then(r => r.json()),
-          fetch(`${API}/api/customers`).then(r => r.json()),
-          fetch(`${API}/api/orders`).then(r => r.json()),
-          fetch(`${API}/api/district-sales`).then(r => r.json()),
+          axios.get(`${API}/api/summary`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${API}/api/products`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${API}/api/customers`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${API}/api/orders`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${API}/api/district-sales`, { headers: { Authorization: `Bearer ${token}` } }),
         ]);
-        setData(s);
-        setProducts(p);
-        setCustomers(c);
-        setOrders(o);
-        setDistrictSales(ds);
+        setData(s.data);
+        setProducts(p.data);
+        setCustomers(c.data);
+        setOrders(o.data);
+        setDistrictSales(ds.data);
       } catch (e) {
         console.error("Failed to load data", e);
+        if (e.response?.status === 401 || e.response?.status === 403) {
+          localStorage.removeItem("token");
+          navigate("/login");
+        }
       } finally {
-        setLoading(false); // 🆕 end loading
+        setLoading(false);
       }
     }
     loadAll();
-  }, []);
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -79,8 +90,8 @@ function App() {
           setSidebarOpen(false);
         }}
         onLogout={() => {
-          setLogoutDialogOpen(true);
-          setSidebarOpen(false);
+          localStorage.removeItem("token");
+          navigate("/login");
         }}
       />
 
@@ -312,34 +323,31 @@ function App() {
         </main>
       </div>
 
-      {logoutDialogOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">Confirm Logout</h3>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to logout?
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setLogoutDialogOpen(false)}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  localStorage.clear();
-                  window.location.reload();
-                }}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
+  );
+}
+
+// App Component with Routing
+function App() {
+  const navigate = useNavigate();
+
+  const handleLogin = () => {
+    navigate("/dashboard");
+  };
+
+  return (
+    <Routes>
+      <Route path="/login" element={<Login onLogin={handleLogin} />} />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/" element={<Login onLogin={handleLogin} />} />
+    </Routes>
   );
 }
 
