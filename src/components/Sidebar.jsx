@@ -1,5 +1,7 @@
 
 
+import { useNavigate } from "react-router-dom";
+
 const items = [
   { key: "dashboard", label: "Dashboard", icon: (
     <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -34,6 +36,7 @@ const items = [
 ];
 
 export default function Sidebar({ open, onClose, active, setActive, onLogout }) {
+  const navigate = useNavigate();
 
   return (
     <>
@@ -61,7 +64,14 @@ export default function Sidebar({ open, onClose, active, setActive, onLogout }) 
               return (
                 <li key={item.key}>
                   <button
-                    onClick={() => item.key === "logout" ? onLogout() : setActive(item.key)}
+                    onClick={() => {
+                      if (item.key === "logout") {
+                        onLogout();
+                        navigate("/login");
+                      } else {
+                        setActive(item.key);
+                      }
+                    }}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition
                     ${isActive ? "bg-indigo-50 text-indigo-700" : "text-gray-700 hover:bg-gray-100"}`}
                   >

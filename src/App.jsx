@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { Routes, Route, useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import axios from "axios";
+import Login from "./components/Login";
+import ProtectedRoute from "./components/ProtectedRoute";
 import Header from "./components/Header";
 import Card from "./components/Card";
 import Sidebar from "./components/Sidebar";
@@ -12,8 +14,6 @@ import CustomersTable from "./components/CustomersTable";
 import SalesByDistrict from "./components/SalesReport";
 import OrdersStatusStats from "./components/OrdersStatusStats";
 import SalesByProduct from "./components/SalesByProduct";
-import Login from "./components/Login";
-import ProtectedRoute from "./components/ProtectedRoute";
 import "./index.css";
 
 // 🔹 Loader Component
@@ -36,8 +36,7 @@ function NoData({ message }) {
 }
 
 // Dashboard Component
-function Dashboard() {
-  const navigate = useNavigate();
+function Dashboard({ onLogout }) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -49,17 +48,18 @@ function Dashboard() {
   const [districtSales, setDistrictSales] = useState([]);
 
   useEffect(() => {
-    const API = "http://localhost:5000";
+    const API = "https://userdashboard-be.onrender.com";
     const token = localStorage.getItem("token");
 
     async function loadAll() {
       try {
+        const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
         const [s, p, c, o, ds] = await Promise.all([
-          axios.get(`${API}/api/summary`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${API}/api/products`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${API}/api/customers`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${API}/api/orders`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${API}/api/district-sales`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${API}/api/summary`, config),
+          axios.get(`${API}/api/products`, config),
+          axios.get(`${API}/api/customers`, config),
+          axios.get(`${API}/api/orders`, config),
+          axios.get(`${API}/api/district-sales`, config),
         ]);
         setData(s.data);
         setProducts(p.data);
@@ -68,16 +68,12 @@ function Dashboard() {
         setDistrictSales(ds.data);
       } catch (e) {
         console.error("Failed to load data", e);
-        if (e.response?.status === 401 || e.response?.status === 403) {
-          localStorage.removeItem("token");
-          navigate("/login");
-        }
       } finally {
         setLoading(false);
       }
     }
     loadAll();
-  }, [navigate]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -89,10 +85,7 @@ function Dashboard() {
           setActive(key);
           setSidebarOpen(false);
         }}
-        onLogout={() => {
-          localStorage.removeItem("token");
-          navigate("/login");
-        }}
+        onLogout={onLogout}
       />
 
       <div className="md:ml-64">
@@ -327,26 +320,43 @@ function Dashboard() {
   );
 }
 
-// App Component with Routing
+// App Component
 function App() {
-  const navigate = useNavigate();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      setIsLoggedIn(true);
+    }
+  }, []);
 
   const handleLogin = () => {
-    navigate("/dashboard");
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setIsLoggedIn(false);
   };
 
   return (
     <Routes>
-      <Route path="/login" element={<Login onLogin={handleLogin} />} />
       <Route
-        path="/dashboard"
+        path="/login"
+        element={
+          isLoggedIn ? <Navigate to="/" replace /> : <Login onLogin={handleLogin} />
+        }
+      />
+      <Route
+        path="/"
         element={
           <ProtectedRoute>
-            <Dashboard />
+            <Dashboard onLogout={handleLogout} />
           </ProtectedRoute>
         }
       />
-      <Route path="/" element={<Login onLogin={handleLogin} />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
